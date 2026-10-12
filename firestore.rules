@@ -1,0 +1,102 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function userExists() {
+      return signedIn() && exists(userPath());
+    }
+
+    function role() {
+      return get(userPath()).data.role;
+    }
+
+    function isStaff() {
+      return userExists() && (role() == 'teacher' || role() == 'admin');
+    }
+
+    function isAdmin() {
+      return userExists() && role() == 'admin';
+    }
+
+    function metadataPath() {
+      return /databases/$(database)/documents/allocationMetadata/current;
+    }
+
+    function metadataExists() {
+      return exists(metadataPath());
+    }
+
+    function activeVersionId() {
+      return get(metadataPath()).data.activeVersionId;
+    }
+
+    function previousVersionId() {
+      return get(metadataPath()).data.previousVersionId;
+    }
+
+    function teacherCanReadVersion(versionId) {
+      return metadataExists() && (versionId == activeVersionId() || versionId == previousVersionId());
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create, update: if isAdmin()
+        && request.resource.data.uid == uid
+        && request.resource.data.role in ['teacher', 'admin']
+        && request.resource.data.email is string
+        && request.resource.data.email.size() > 3
+        && request.resource.data.email.size() < 200;
+      allow delete: if isAdmin();
+    }
+
+    match /allocationMetadata/{docId} {
+      allow read: if isStaff();
+      allow create, update: if isAdmin()
+        && docId == 'current'
+        && request.resource.data.activeVersionId is string
+        && request.resource.data.activeVersionId.size() > 0
+        && request.resource.data.activeVersionId.size() < 200
+        && request.resource.data.recordCount is int
+        && (request.resource.data.previousVersionId == null || request.resource.data.previousVersionId is string);
+      allow delete: if false;
+    }
+
+    match /allocationVersions/{versionId} {
+      allow read: if isAdmin() || (isStaff() && teacherCanReadVersion(versionId));
+      allow create: if isAdmin()
+        && request.resource.data.status == 'uploading'
+        && request.resource.data.expectedCount is int
+        && request.resource.data.uploadedCount == 0
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isAdmin() && (
+        (resource.data.status == 'uploading' && request.resource.data.status in ['uploading', 'ready', 'failed'])
+        || (resource.data.status == 'ready' && request.resource.data.status in ['active', 'failed'])
+        || (resource.data.status == 'active' && request.resource.data.status == 'archived')
+      );
+      allow delete: if isAdmin() && resource.data.status != 'active';
+
+      match /students/{studentId} {
+        allow read: if isAdmin() || (isStaff() && teacherCanReadVersion(versionId));
+        allow create: if isAdmin()
+          && request.resource.data.studentId is string
+          && request.resource.data.studentId.size() > 0
+          && request.resource.data.studentId.size() < 200;
+        allow update: if false;
+        allow delete: if isAdmin()
+          && get(/databases/$(database)/documents/allocationVersions/$(versionId)).data.status != 'active';
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
