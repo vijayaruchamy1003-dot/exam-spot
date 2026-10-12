@@ -7,6 +7,7 @@ const AUTH_MESSAGES: Record<string, string> = {
   'auth/too-many-requests': 'Too many attempts. Wait a moment and try again.',
   'auth/network-request-failed': 'Network error. Check your connection and try again.',
   'auth/invalid-api-key': 'Firebase configuration is invalid. Check the app settings.',
+  'auth/configuration-not-found': 'Email and password sign-in is not enabled for this Firebase project yet.',
 };
 
 function errorCode(error: unknown): string {

@@ -54,8 +54,13 @@ const apiKey = env.EXPO_PUBLIC_FIREBASE_API_KEY.trim();
 
 async function errorStatus(response) {
   const body = await response.json().catch(() => null);
-  const status = body && typeof body === 'object' && body.error && typeof body.error.status === 'string' ? body.error.status : '';
-  return { http: response.status, status };
+  const error = body && typeof body === 'object' ? body.error : null;
+  const status = error && typeof error.status === 'string' ? error.status : '';
+  const message = error && typeof error.message === 'string' ? error.message : '';
+  const code = ['INVALID_LOGIN_CREDENTIALS', 'EMAIL_NOT_FOUND', 'INVALID_PASSWORD', 'OPERATION_NOT_ALLOWED', 'CONFIGURATION_NOT_FOUND', 'API_KEY_INVALID'].find(
+    (known) => message === known || message.startsWith(`${known} `),
+  );
+  return { http: response.status, status: code || status };
 }
 
 const metadataUrl = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents/allocationMetadata/current?key=${encodeURIComponent(apiKey)}`;
@@ -86,9 +91,9 @@ const authResponse = await fetch(`https://identitytoolkit.googleapis.com/v1/acco
 });
 const auth = await errorStatus(authResponse);
 
-if (auth.status === 'OPERATION_NOT_ALLOWED') {
-  console.error('Firebase Authentication is reachable, but Email/Password sign-in is disabled.');
-  console.error('In Firebase console, open Authentication, Sign-in method, and enable Email/Password.');
+if (auth.status === 'OPERATION_NOT_ALLOWED' || auth.status === 'CONFIGURATION_NOT_FOUND') {
+  console.error('Firestore is reachable and unauthenticated access is denied.');
+  console.error('Firebase Authentication is not ready. In the Firebase console, open Authentication, choose Get started if you see it, then enable Email/Password.');
   process.exit(1);
 }
 
