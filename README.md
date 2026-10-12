@@ -87,7 +87,13 @@ Demo imports stay on that one device.
 These steps are manual. They happen in the Firebase and Google Cloud consoles, not in the app.
 
 1. Create a Firebase project. Stay on the Spark plan unless the school needs more quota. A few thousand student writes per import fit the free daily limits for a modest exam. Check the current quotas before a large import. The import screen warns above 5,000 rows.
-2. Add a Web app in Project settings and copy the client configuration into `.env`. Set `EXPO_PUBLIC_DEMO_MODE=false`.
+2. Add a Web app in Project settings. Copy `firebaseConfig` into `.env` using the names in `.env.example`, then set `EXPO_PUBLIC_DEMO_MODE=false`. Do not commit `.env`. Check the connection without printing student data:
+
+```bash
+npm run test:firebase
+```
+
+The command makes no network request until all six values are present. A passing result means Firestore rejected an anonymous read and Email/Password authentication is enabled. It does not by itself prove a teacher profile can open allocations.
 3. Authentication → Sign-in method → enable Email/Password.
 4. Create one user per teacher or administrator. The app does not offer public registration.
 5. Create a Firestore database in production mode.

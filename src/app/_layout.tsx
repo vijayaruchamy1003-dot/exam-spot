@@ -4,7 +4,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { StatusBanner } from '@/components/StatusBanner';
-import { REQUIRED_FIREBASE_ENV } from '@/config/env';
+import { missingFirebaseConfigKeys } from '@/config/env';
 import { SessionProvider, useSession } from '@/services/session/SessionProvider';
 import { colors } from '@/theme/colors';
 
@@ -53,7 +53,7 @@ function ConfigMissing() {
       <Text style={styles.configBody}>
         Add these public client settings to a local .env file, then restart Expo. Client settings are not a substitute for Firestore Security Rules.
       </Text>
-      {REQUIRED_FIREBASE_ENV.map((key) => (
+      {missingFirebaseConfigKeys().map((key) => (
         <Text key={key} style={styles.envKey}>
           {key}
         </Text>

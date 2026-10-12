@@ -18,9 +18,20 @@ const FIREBASE_KEYS = [
   'EXPO_PUBLIC_FIREBASE_APP_ID',
 ] as const;
 
-function readEnv(name: (typeof FIREBASE_KEYS)[number]): string {
-  const value = process.env[name];
+type EnvSource = Record<string, string | undefined>;
+
+function readEnvValue(source: EnvSource, name: (typeof FIREBASE_KEYS)[number]): string {
+  const value = source[name];
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function readEnv(name: (typeof FIREBASE_KEYS)[number]): string {
+  return readEnvValue(process.env, name);
+}
+
+/** Names of empty public client settings. Values are never returned. */
+export function missingFirebaseConfigKeys(source: EnvSource = process.env): string[] {
+  return FIREBASE_KEYS.filter((name) => !readEnvValue(source, name));
 }
 
 export function isDemoMode(): boolean {

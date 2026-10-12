@@ -39,7 +39,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:rules": "firebase emulators:exec --only firestore --project demo-exam-room-finder \"vitest run --config vitest.rules.config.ts\""
+    "test:rules": "firebase emulators:exec --only firestore --project demo-exam-room-finder \"vitest run --config vitest.rules.config.ts\"",
+    "test:firebase": "node scripts/test-firebase-connection.mjs"
   },
   "private": true
 }
