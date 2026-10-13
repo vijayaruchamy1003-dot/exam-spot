@@ -21,26 +21,26 @@ describe('student lookup decisions', () => {
       activeVersionId: 'vcurrent',
       cache: emptyCache(),
     });
-    expect(decision).toEqual({ type: 'fetch', versionId: 'vcurrent', studentId: '0010245' });
+    expect(decision).toEqual({ type: 'fetch', versionId: 'vcurrent', studentId: 'Z0010245' });
   });
 
   it('uses a cached record only when it belongs to the active version', () => {
     const saved = rememberLookup(cacheWithMetadata(emptyCache(), metadata, '2026-10-12T09:30:00.000Z'), {
       versionId: 'vcurrent',
-      studentId: '0010245',
+      studentId: 'Z0010245',
       found: true,
-      student: { studentId: '0010245', roomNumber: 'A-204' },
+      student: { studentId: 'Z0010245', roomNumber: 'A-204' },
       cachedAt: '2026-10-12T09:30:00.000Z',
     });
     const otherVersion = rememberLookup(saved, {
       versionId: 'vother',
-      studentId: '0010245',
+      studentId: 'Z0010245',
       found: true,
-      student: { studentId: '0010245', roomNumber: 'Z-9' },
+      student: { studentId: 'Z0010245', roomNumber: 'Z-9' },
       cachedAt: '2026-10-12T09:40:00.000Z',
     });
-    expect(findLookup(otherVersion, 'vcurrent', '0010245')?.student?.roomNumber).toBe('A-204');
-    expect(findLookup(otherVersion, 'vother', '0010245')).toBeNull();
+    expect(findLookup(otherVersion, 'vcurrent', 'Z0010245')?.student?.roomNumber).toBe('A-204');
+    expect(findLookup(otherVersion, 'vother', 'Z0010245')).toBeNull();
 
     const offline = decideLookup({
       rawId: '0010245',

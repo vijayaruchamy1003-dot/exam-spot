@@ -244,7 +244,7 @@ export default function ImportScreen() {
         <PrimaryButton label="Remove old versions" tone="secondary" onPress={() => void cleanup()} disabled={running} />
         {cleanupMessage ? <Text style={styles.note}>{cleanupMessage}</Text> : null}
         <Text style={styles.note}>
-          If the upload stops early, the previous active allocation stays in place. Student IDs are kept as text, including leading zeros. Format the ID column as text in Excel before import.
+          If the upload stops early, the previous active allocation stays in place. Student IDs are kept as text, including leading zeros. A leading Z is added when the cell does not already start with Z. Format the ID column as text in Excel before import.
         </Text>
       </ScrollView>
       <ConfirmDialog

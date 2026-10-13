@@ -6,7 +6,7 @@ import type { StudentAllocation } from '@/types/allocation';
  */
 export const SAMPLE_STUDENTS: StudentAllocation[] = [
   {
-    studentId: '0010245',
+    studentId: 'Z0010245',
     studentName: 'Sample Student',
     registerNumber: 'REG001',
     department: 'Sample Department',
@@ -18,7 +18,7 @@ export const SAMPLE_STUDENTS: StudentAllocation[] = [
     extras: { 'Hall ticket': 'HT-0010245' },
   },
   {
-    studentId: '0010246',
+    studentId: 'Z0010246',
     studentName: 'Sample Student Two',
     registerNumber: 'REG002',
     department: 'Sample Department',
@@ -29,7 +29,7 @@ export const SAMPLE_STUDENTS: StudentAllocation[] = [
     seatNumber: '25',
   },
   {
-    studentId: '000007',
+    studentId: 'Z000007',
     studentName: 'Sample Student Three',
     registerNumber: 'REG007',
     department: 'Sample Science',
@@ -40,7 +40,7 @@ export const SAMPLE_STUDENTS: StudentAllocation[] = [
     seatNumber: '03',
   },
   {
-    studentId: '0011001',
+    studentId: 'Z0011001',
     studentName: 'Sample Student Four',
     registerNumber: 'REG110',
     department: 'Sample Commerce',
@@ -51,7 +51,7 @@ export const SAMPLE_STUDENTS: StudentAllocation[] = [
     seatNumber: '01',
   },
   {
-    studentId: '009900',
+    studentId: 'Z009900',
     studentName: 'Sample Student Five',
     registerNumber: 'REG990',
     examSession: 'Afternoon session',

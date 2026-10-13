@@ -28,7 +28,7 @@ Firebase's client configuration is public. It identifies the project. It does no
 ## Assumptions
 
 - The first row of the selected worksheet is the header row.
-- Student IDs are text. Leading and trailing spaces are removed. The app never converts an ID with `Number` or `parseInt`. If Excel stored the ID as a number, the leading zeros are already gone and the app will not invent them. Format that column as Text before importing.
+- Student IDs are text and always start with Z. Leading and trailing spaces are removed. Search and import add a leading Z when it is missing, and they do not add a second one. The app never converts an ID with `Number` or `parseInt`. If Excel stored the ID as a number, the leading zeros are already gone and the app will not invent them. Format that column as Text before importing.
 - Lookup is an exact ID match through one document read. There is no name search.
 - Blank student IDs must be corrected in the spreadsheet. They are not skipped.
 - Duplicate IDs are not overwritten quietly. The default policy is to stop. Keep-first keeps the earliest row. Keep-last keeps the latest row. The decision applies only to the new import.

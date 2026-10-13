@@ -12,6 +12,7 @@ import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useStudentSearch } from '@/hooks/useStudentSearch';
 import { useSession } from '@/services/session/SessionProvider';
 import { colors } from '@/theme/colors';
+import { STUDENT_ID_PREFIX } from '@/utils/studentId';
 import { formatSyncTime } from '@/utils/text';
 
 export default function HomeScreen() {
@@ -70,6 +71,7 @@ export default function HomeScreen() {
         {profile?.role === 'admin' ? <PrimaryButton label="Import allocation" onPress={() => router.push('/import')} tone="secondary" /> : null}
         <TextField
           label="Enter Student ID"
+          prefix={STUDENT_ID_PREFIX}
           value={search.query}
           onChangeText={search.setQuery}
           placeholder="e.g. 0010245"
@@ -89,7 +91,7 @@ export default function HomeScreen() {
             <Text style={styles.emptyTitle}>Search a student ID</Text>
             <Text style={styles.emptyBody}>
               {mode === 'demo'
-                ? 'The room and seat appear here after a match. Sample IDs include 0010245 and 000007.'
+                ? 'The room and seat appear here after a match. The Z is added for you. Sample IDs include 0010245 and 000007.'
                 : 'The room and seat appear here after a match from the active allocation.'}
             </Text>
           </View>

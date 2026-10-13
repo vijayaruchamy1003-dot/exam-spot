@@ -46,7 +46,7 @@ describe('import validation', () => {
     });
     expect(result.canImport).toBe(true);
     expect(result.records[0]).toMatchObject({
-      studentId: '0010245',
+      studentId: 'Z0010245',
       studentName: 'Sample Student',
       roomNumber: 'A-204',
       extras: { 'Hall Ticket': 'HT-0010245' },
@@ -67,11 +67,11 @@ describe('import validation', () => {
 
     const keepFirst = validateImport({ rows, headers, policy: 'keep-first', preserveUnmapped: false });
     expect(keepFirst.canImport).toBe(true);
-    expect(keepFirst.records.find((record) => record.studentId === '0010245')?.studentName).toBe('First');
+    expect(keepFirst.records.find((record) => record.studentId === 'Z0010245')?.studentName).toBe('First');
     expect(keepFirst.summary.importedRecords).toBe(2);
 
     const keepLast = validateImport({ rows, headers, policy: 'keep-last', preserveUnmapped: false });
-    expect(keepLast.records.find((record) => record.studentId === '0010245')?.roomNumber).toBe('B-1');
+    expect(keepLast.records.find((record) => record.studentId === 'Z0010245')?.roomNumber).toBe('B-1');
   });
 
   it('requires a student ID column', () => {

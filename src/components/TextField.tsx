@@ -6,6 +6,7 @@ export function TextField({
   value,
   onChangeText,
   placeholder,
+  prefix,
   secureTextEntry = false,
   autoCapitalize = 'none',
   keyboardType = 'default',
@@ -16,6 +17,7 @@ export function TextField({
   value: string;
   onChangeText: (value: string) => void;
   placeholder?: string;
+  prefix?: string;
   secureTextEntry?: boolean;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   keyboardType?: 'default' | 'email-address' | 'number-pad';
@@ -25,22 +27,32 @@ export function TextField({
   return (
     <View style={styles.wrap}>
       <Text style={styles.label}>{label}</Text>
-      <TextInput
-        accessibilityLabel={label}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={colors.muted}
-        secureTextEntry={secureTextEntry}
-        autoCapitalize={autoCapitalize}
-        autoCorrect={false}
-        keyboardType={keyboardType}
-        returnKeyType={returnKeyType}
-        onSubmitEditing={onSubmitEditing}
-        style={styles.input}
-      />
+      <View style={styles.shell}>
+        {prefix ? <Text style={styles.prefix}>{prefix}</Text> : null}
+        <TextInput
+          accessibilityLabel={label}
+          value={value}
+          onChangeText={(text) => onChangeText(stripPrefix(text, prefix))}
+          placeholder={placeholder}
+          placeholderTextColor={colors.muted}
+          secureTextEntry={secureTextEntry}
+          autoCapitalize={prefix ? 'none' : autoCapitalize}
+          autoCorrect={false}
+          keyboardType={keyboardType}
+          returnKeyType={returnKeyType}
+          onSubmitEditing={onSubmitEditing}
+          style={styles.input}
+        />
+      </View>
     </View>
   );
+}
+
+function stripPrefix(text: string, prefix: string | undefined): string {
+  if (!prefix) return text;
+  const trimmed = text.trimStart();
+  if (trimmed.toLowerCase().startsWith(prefix.toLowerCase())) return trimmed.slice(prefix.length);
+  return text;
 }
 
 const styles = StyleSheet.create({
@@ -52,12 +64,24 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
-  input: {
+  shell: {
     minHeight: 52,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.white,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  prefix: {
+    paddingLeft: 14,
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.navy,
+  },
+  input: {
+    flex: 1,
+    minHeight: 52,
     paddingHorizontal: 14,
     fontSize: 18,
     color: colors.text,
