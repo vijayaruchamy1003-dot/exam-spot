@@ -87,7 +87,7 @@ Demo imports stay on that one device.
 These steps are manual. They happen in the Firebase and Google Cloud consoles, not in the app.
 
 1. Create a Firebase project. Stay on the Spark plan unless the school needs more quota. A few thousand student writes per import fit the free daily limits for a modest exam. Check the current quotas before a large import. The import screen warns above 5,000 rows.
-2. Add a Web app in Project settings. Copy `firebaseConfig` into `.env` using the names in `.env.example`, then set `EXPO_PUBLIC_DEMO_MODE=false`. Do not commit `.env`. Check the connection without printing student data:
+2. Add a Web app in Project settings. The public client values for this project are already in `.env`. These identify the Firebase project. They are not a service-account key, and they do not replace Firestore Security Rules. Check the connection without printing student data:
 
 ```bash
 npm run test:firebase
@@ -119,7 +119,7 @@ users/{uid from Authentication}
 8. For each teacher, create `users/{their uid}` with `role: "teacher"`. The phone cannot change its own role.
 9. Restart Expo so it reloads `.env`.
 
-For EAS builds, set the same `EXPO_PUBLIC_*` variables in the Expo project environment. Do not commit `.env`. The preview and production profiles in `eas.json` force demo mode off. They do not contain Firebase values.
+For EAS builds, set the same `EXPO_PUBLIC_*` variables in the Expo project environment. The preview and production profiles in `eas.json` force demo mode off. Do not commit a Firebase service-account key.
 
 ## How an import is published
 

@@ -34,8 +34,7 @@ pubsub-debug.log
 .DS_Store
 *.pem
 
-# local env files
-.env
+# local overrides only; the shared public client config lives in .env
 .env*.local
 
 # typescript
