@@ -48,16 +48,20 @@ export default function HomeScreen() {
           <View style={[styles.dot, online || sync.localOnly ? styles.dotOn : styles.dotOff]} />
           <Text style={styles.statusText}>{syncTitle}</Text>
         </View>
-        <Text style={styles.syncTime}>Last synchronized {formatSyncTime(sync.lastSynchronizedAt)}</Text>
-        {sync.metadata?.lastSuccessfulImportAt ? (
-          <Text style={styles.syncTime}>
-            Active list published {formatSyncTime(sync.metadata.lastSuccessfulImportAt)}
-            {sync.metadata.sourceFileName ? ` · ${sync.metadata.sourceFileName}` : ''}
-            {sync.metadata.recordCount ? ` · ${sync.metadata.recordCount} records` : ''}
-          </Text>
-        ) : (
-          <Text style={styles.syncTime}>No allocation has been published yet.</Text>
-        )}
+        {profile?.role === 'admin' ? (
+          <>
+            <Text style={styles.syncTime}>Last synchronized {formatSyncTime(sync.lastSynchronizedAt)}</Text>
+            {sync.metadata?.lastSuccessfulImportAt ? (
+              <Text style={styles.syncTime}>
+                Active list published {formatSyncTime(sync.metadata.lastSuccessfulImportAt)}
+                {sync.metadata.sourceFileName ? ` · ${sync.metadata.sourceFileName}` : ''}
+                {sync.metadata.recordCount ? ` · ${sync.metadata.recordCount} records` : ''}
+              </Text>
+            ) : (
+              <Text style={styles.syncTime}>No allocation has been published yet.</Text>
+            )}
+          </>
+        ) : null}
         {sync.localOnly ? (
           <StatusBanner tone="warning" title="Demo mode" detail="Updates on this screen are not shared with other phones. Connect Firebase before examination duty." />
         ) : null}
