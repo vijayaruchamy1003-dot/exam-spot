@@ -2,6 +2,7 @@ import { suggestColumnMapping } from '@/services/import/mapping';
 import { STANDARD_FIELDS, type ColumnMapping, type FieldKey } from '@/services/import/fields';
 import type { DuplicatePolicy, StudentAllocation } from '@/types/allocation';
 import type { ImportIssue, ParsedRow, PreviewRow, ValidatedImport } from '@/types/import';
+import { isPrivateContactField } from '@/utils/contactField';
 import { normalizeRegisterNumber, normalizeStudentId } from '@/utils/studentId';
 
 const DETAIL_FIELDS = STANDARD_FIELDS.filter((field) => field.key !== 'studentId' && field.key !== 'registerNumber').map((field) => field.key);
@@ -177,7 +178,7 @@ function toAllocation(
     const used = new Set(Object.values(mapping).filter((header): header is string => Boolean(header)));
     const extras: Record<string, string> = {};
     for (const [header, value] of Object.entries(row.values)) {
-      if (!value || used.has(header)) continue;
+      if (!value || used.has(header) || isPrivateContactField(header)) continue;
       const key = firestoreMapKey(header, extras);
       extras[key] = value;
     }

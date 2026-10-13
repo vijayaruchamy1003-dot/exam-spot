@@ -52,7 +52,7 @@ export default function ImportScreen() {
   if (profile?.role !== 'admin') {
     return (
       <View style={styles.screen}>
-        <AppHeader title="Import allocation" actionLabel="Back" onAction={() => router.back()} />
+        <AppHeader title="Import allocation" actionLabel="Back" onAction={() => router.replace('/')} />
         <View style={styles.content}>
           <StatusBanner tone="error" title="Administrators only" detail="Your account can search allocations. It cannot import or replace them." />
         </View>
@@ -151,7 +151,7 @@ export default function ImportScreen() {
 
   return (
     <View style={styles.screen}>
-      <AppHeader title="Import allocation" actionLabel="Back" onAction={() => router.back()} />
+      <AppHeader title="Import allocation" actionLabel="Back" onAction={() => router.replace('/')} />
       <ScrollView contentContainerStyle={styles.content}>
         {mode === 'demo' ? (
           <StatusBanner tone="warning" title="Demo import stays on this device" detail="A successful demo import updates this phone only. It does not synchronize to other devices." />

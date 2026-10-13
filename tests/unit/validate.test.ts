@@ -75,7 +75,7 @@ describe('import validation', () => {
   });
 
   it('imports a seating sheet that has a registration number and no student ID', () => {
-    const headers = ['Registration Number', 'Name', 'Seat Number', 'Room Number'];
+    const headers = ['Registration Number', 'Name', 'Seat Number', 'Room Number', 'Mobile Number'];
     const result = validateImport({
       rows: [
         {
@@ -85,6 +85,7 @@ describe('import validation', () => {
             Name: 'Sample Student',
             'Seat Number': '1',
             'Room Number': '1st Floor - Room 1',
+            'Mobile Number': '9000000001',
           },
         },
       ],
@@ -100,6 +101,7 @@ describe('import validation', () => {
       seatNumber: '1',
       roomNumber: '1st Floor - Room 1',
     });
+    expect(result.records[0]?.extras).toBeUndefined();
   });
 
   it('requires a student ID column', () => {
