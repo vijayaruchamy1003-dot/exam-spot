@@ -188,18 +188,21 @@ Before building, set the Firebase environment variables for the preview environm
 
 You do not need Android Studio for an EAS cloud build. Do not commit `android/` or a keystore. EAS creates the native project and signs the APK.
 
-## iOS install
+## iOS Simulator
 
-The same `preview` profile builds an internal iOS app. It uses the Firebase variables already stored in the EAS preview environment and keeps demo mode off. Register each iPhone before building. An internal iOS build only installs on devices included in that build.
+The `ios-simulator` profile builds an unsigned app for the iOS Simulator on a Mac. It uses the Firebase variables already stored in the EAS preview environment and keeps demo mode off. It does not install on an iPhone, and it does not require device registration or a paid Apple Developer account.
 
 ```bash
-npx eas-cli device:create
-npx eas-cli build --platform ios --profile preview
+npx eas-cli build --platform ios --profile ios-simulator
 ```
 
-`device:create` opens a page on the iPhone and registers its identifier with the Apple Developer account. The first iOS build asks you to sign in to Apple and lets EAS create the distribution certificate and provisioning profile. A paid Apple Developer Program membership is required. EAS signs the app. Do not commit `ios/` or those certificates.
+On the Mac, with Xcode installed, install that build into a booted simulator:
 
-When the build finishes, open the install link in Safari on that iPhone. If iOS blocks the app, go to Settings, General, VPN & Device Management, trust the developer certificate, then open Exam Room Finder again.
+```bash
+npx eas-cli build:run --platform ios --profile ios-simulator
+```
+
+For a physical iPhone, use the `preview` profile instead. Register the phone first with `npx eas-cli device:create`, then run `npx eas-cli build --platform ios --profile preview`. That build requires a paid Apple Developer Program membership. Open the install link in Safari on that iPhone. If iOS blocks the app, go to Settings, General, VPN & Device Management, trust the developer certificate, then open Exam Room Finder again. Do not commit `ios/` or the signing certificates.
 
 ## Scripts
 
