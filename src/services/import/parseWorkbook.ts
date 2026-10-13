@@ -6,11 +6,13 @@ import { AppError } from '@/utils/errors';
 
 export function parseWorkbook(bytes: ArrayBuffer): ParsedWorkbook {
   assertSpreadsheet(bytes);
+  const text = new TextDecoder().decode(bytes);
+  const csv = !isZipOrOle(bytes);
   let workbook: XLSX.WorkBook;
   try {
-    workbook = XLSX.read(bytes, { type: 'array', cellDates: false });
+    workbook = csv ? XLSX.read(text, { type: 'string', cellDates: false }) : XLSX.read(bytes, { type: 'array', cellDates: false });
   } catch {
-    throw new AppError('This file could not be read. Choose an Excel workbook (.xlsx or .xls).', 'unsupported-file');
+    throw new AppError('This file could not be read. Choose an Excel workbook (.xlsx or .xls) or a .csv file.', 'unsupported-file');
   }
 
   if (!workbook.SheetNames.length) {
@@ -22,12 +24,21 @@ export function parseWorkbook(bytes: ArrayBuffer): ParsedWorkbook {
   };
 }
 
+function isZipOrOle(bytes: ArrayBuffer): boolean {
+  const view = new Uint8Array(bytes);
+  const zip = view.length >= 4 && view[0] === 0x50 && view[1] === 0x4b;
+  const ole = view.length >= 8 && view[0] === 0xd0 && view[1] === 0xcf && view[2] === 0x11 && view[3] === 0xe0;
+  return zip || ole;
+}
+
 function assertSpreadsheet(bytes: ArrayBuffer): void {
   const view = new Uint8Array(bytes);
   const zip = view.length >= 4 && view[0] === 0x50 && view[1] === 0x4b;
   const ole = view.length >= 8 && view[0] === 0xd0 && view[1] === 0xcf && view[2] === 0x11 && view[3] === 0xe0;
   if (!zip && !ole) {
-    throw new AppError('This file could not be read. Choose an Excel workbook (.xlsx or .xls).', 'unsupported-file');
+    const text = new TextDecoder().decode(bytes);
+    if (text.includes(',') && (text.includes('\n') || text.includes('\r'))) return;
+    throw new AppError('This file could not be read. Choose an Excel workbook (.xlsx or .xls) or a .csv file.', 'unsupported-file');
   }
 }
 

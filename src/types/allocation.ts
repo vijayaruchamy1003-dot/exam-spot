@@ -2,6 +2,8 @@ export type VersionStatus = 'uploading' | 'ready' | 'active' | 'failed' | 'archi
 
 export type DuplicatePolicy = 'reject' | 'keep-first' | 'keep-last';
 
+export type SearchBy = 'registerNumber' | 'studentId';
+
 export interface StudentAllocation {
   studentId: string;
   studentName?: string;

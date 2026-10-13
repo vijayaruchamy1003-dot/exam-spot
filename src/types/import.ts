@@ -35,6 +35,7 @@ export interface ImportSummary {
 export interface PreviewRow {
   rowNumber: number;
   studentId: string;
+  registerNumber: string;
   studentName: string;
   roomNumber: string;
   seatNumber: string;

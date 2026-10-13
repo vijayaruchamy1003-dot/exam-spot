@@ -21,26 +21,26 @@ describe('student lookup decisions', () => {
       activeVersionId: 'vcurrent',
       cache: emptyCache(),
     });
-    expect(decision).toEqual({ type: 'fetch', versionId: 'vcurrent', studentId: 'Z0010245' });
+    expect(decision).toEqual({ type: 'fetch', versionId: 'vcurrent', studentId: 'Z0010245', by: 'studentId' });
   });
 
   it('uses a cached record only when it belongs to the active version', () => {
     const saved = rememberLookup(cacheWithMetadata(emptyCache(), metadata, '2026-10-12T09:30:00.000Z'), {
       versionId: 'vcurrent',
-      studentId: 'Z0010245',
+      studentId: 'studentId:Z0010245',
       found: true,
       student: { studentId: 'Z0010245', roomNumber: 'A-204' },
       cachedAt: '2026-10-12T09:30:00.000Z',
     });
     const otherVersion = rememberLookup(saved, {
       versionId: 'vother',
-      studentId: 'Z0010245',
+      studentId: 'studentId:Z0010245',
       found: true,
       student: { studentId: 'Z0010245', roomNumber: 'Z-9' },
       cachedAt: '2026-10-12T09:40:00.000Z',
     });
-    expect(findLookup(otherVersion, 'vcurrent', 'Z0010245')?.student?.roomNumber).toBe('A-204');
-    expect(findLookup(otherVersion, 'vother', 'Z0010245')).toBeNull();
+    expect(findLookup(otherVersion, 'vcurrent', 'studentId:Z0010245')?.student?.roomNumber).toBe('A-204');
+    expect(findLookup(otherVersion, 'vother', 'studentId:Z0010245')).toBeNull();
 
     const offline = decideLookup({
       rawId: '0010245',
@@ -66,5 +66,14 @@ describe('student lookup decisions', () => {
   it('asks for an ID and reports a missing allocation', () => {
     expect(decideLookup({ rawId: '   ', online: true, localOnly: false, activeVersionId: 'vcurrent', cache: emptyCache() }).type).toBe('need-id');
     expect(decideLookup({ rawId: '0010245', online: true, localOnly: false, activeVersionId: null, cache: emptyCache() }).type).toBe('no-allocation');
+    const byRegister = decideLookup({
+      rawId: ' 9000000000000000001 ',
+      by: 'registerNumber',
+      online: true,
+      localOnly: false,
+      activeVersionId: 'vcurrent',
+      cache: emptyCache(),
+    });
+    expect(byRegister).toEqual({ type: 'fetch', versionId: 'vcurrent', studentId: '9000000000000000001', by: 'registerNumber' });
   });
 });

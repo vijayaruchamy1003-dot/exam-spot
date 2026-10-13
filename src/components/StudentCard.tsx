@@ -3,21 +3,23 @@ import type { StudentAllocation } from '@/types/allocation';
 import { colors } from '@/theme/colors';
 
 const DETAIL_FIELDS: Array<{ key: keyof StudentAllocation; label: string }> = [
-  { key: 'registerNumber', label: 'Register number' },
+  { key: 'registerNumber', label: 'Registration number' },
   { key: 'department', label: 'Course or department' },
   { key: 'examSession', label: 'Examination' },
 ];
 
 export function StudentCard({ student }: { student: StudentAllocation }) {
+  const headline = student.studentId || student.registerNumber || '';
+  const eyebrow = student.studentId ? 'Student ID' : 'Registration number';
   const hasRoom = Boolean(student.roomNumber);
   const hasSeat = Boolean(student.seatNumber);
   const place = [student.building, student.floor ? `Floor ${student.floor}` : ''].filter(Boolean).join(' · ');
 
   return (
     <View style={styles.card}>
-      <Text style={styles.eyebrow}>Student ID</Text>
+      <Text style={styles.eyebrow}>{eyebrow}</Text>
       <Text style={styles.studentId} accessibilityRole="header">
-        {student.studentId}
+        {headline}
       </Text>
       {student.studentName ? <Text style={styles.name}>{student.studentName}</Text> : null}
 
@@ -47,6 +49,7 @@ export function StudentCard({ student }: { student: StudentAllocation }) {
 
       <View style={styles.details}>
         {DETAIL_FIELDS.map((field) => {
+          if (field.key === 'registerNumber' && !student.studentId) return null;
           const value = student[field.key];
           if (typeof value !== 'string' || !value) return null;
           return (

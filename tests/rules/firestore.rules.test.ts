@@ -112,6 +112,9 @@ describe('Firestore security rules', () => {
       }),
     );
     await assertFails(deleteDoc(doc(db, 'allocationVersions/vactive')));
+    await assertSucceeds(setDoc(doc(db, 'allocationVersions/vupload/students/regonly'), { registerNumber: '9000000000000000001' }));
+    await assertSucceeds(setDoc(doc(db, 'allocationVersions/vupload/lookups/reg~9000000000000000001'), { docId: 'regonly' }));
+    await assertFails(setDoc(doc(db, 'allocationVersions/vupload/students/blank'), { studentName: 'No identifier' }));
   });
 
   it('denies access to unknown collections', async () => {

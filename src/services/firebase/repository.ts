@@ -20,12 +20,15 @@ import type { AllocationRepository } from '@/services/allocations/repository';
 import { studentFromFirestore, studentToFirestore } from '@/services/allocations/studentRecord';
 import { getDb } from '@/services/firebase/client';
 import { mapFirestoreError } from '@/services/firebase/errors';
-import type { AllocationMetadata, AllocationVersionRecord, DuplicatePolicy, StudentAllocation, VersionStatus } from '@/types/allocation';
-import { studentDocumentId } from '@/utils/documentId';
+import type { AllocationMetadata, AllocationVersionRecord, DuplicatePolicy, SearchBy, StudentAllocation, VersionStatus } from '@/types/allocation';
+import { lookupDocumentId, storedStudentDocumentId, studentDocumentId } from '@/utils/documentId';
+import { normalizeRegisterNumber, normalizeStudentId } from '@/utils/studentId';
 import { AppError } from '@/utils/errors';
 
 const VERSIONS = 'allocationVersions';
 const STUDENTS = 'students';
+const LOOKUPS = 'lookups';
+const FIRESTORE_WRITE_LIMIT = 450;
 const METADATA = 'allocationMetadata';
 const CURRENT = 'current';
 
@@ -88,12 +91,30 @@ export function createFirestoreRepository(): AllocationRepository {
     },
 
     async writeStudents(versionId, students: StudentAllocation[]) {
-      const batch = writeBatch(db);
+      let batch = writeBatch(db);
+      let writes = 0;
+      const commitIfNeeded = async (force = false) => {
+        if (writes === 0 || (!force && writes < FIRESTORE_WRITE_LIMIT)) return;
+        await batch.commit();
+        batch = writeBatch(db);
+        writes = 0;
+      };
       for (const student of students) {
-        const id = studentDocumentId(student.studentId);
-        batch.set(doc(db, VERSIONS, versionId, STUDENTS, id), studentToFirestore(student));
+        const stored = storedAllocation(student);
+        const docId = storedStudentDocumentId(stored);
+        batch.set(doc(db, VERSIONS, versionId, STUDENTS, docId), studentToFirestore(stored));
+        writes += 1;
+        if (stored.studentId) {
+          batch.set(doc(db, VERSIONS, versionId, LOOKUPS, lookupDocumentId('studentId', stored.studentId)), { docId });
+          writes += 1;
+        }
+        if (stored.registerNumber) {
+          batch.set(doc(db, VERSIONS, versionId, LOOKUPS, lookupDocumentId('registerNumber', stored.registerNumber)), { docId });
+          writes += 1;
+        }
+        await commitIfNeeded();
       }
-      await batch.commit();
+      await commitIfNeeded(true);
     },
 
     async updateVersion(versionId, patch) {
@@ -135,9 +156,15 @@ export function createFirestoreRepository(): AllocationRepository {
       }
     },
 
-    async getStudent(versionId, studentId) {
+    async getStudent(versionId, value, by: SearchBy = 'studentId') {
       try {
-        const snapshot = await getDoc(doc(db, VERSIONS, versionId, STUDENTS, studentDocumentId(studentId)));
+        const normalized = by === 'registerNumber' ? normalizeRegisterNumber(value) : normalizeStudentId(value);
+        if (!normalized) return null;
+        const pointer = await getDoc(doc(db, VERSIONS, versionId, LOOKUPS, lookupDocumentId(by, normalized)));
+        const directId = by === 'studentId' ? studentDocumentId(normalized) : '';
+        const docId = pointer.exists() && typeof pointer.data().docId === 'string' ? pointer.data().docId : directId;
+        if (!docId) return null;
+        const snapshot = await getDoc(doc(db, VERSIONS, versionId, STUDENTS, docId));
         if (!snapshot.exists()) return null;
         return studentFromFirestore(snapshot.data());
       } catch (error) {
@@ -158,16 +185,24 @@ export function createFirestoreRepository(): AllocationRepository {
       if (version.status === 'active' || metadata?.activeVersionId === versionId || metadata?.previousVersionId === versionId) {
         throw new AppError('The active allocation and the previous allocation are kept.', 'protected-version');
       }
-      while (true) {
-        const page = await getDocs(query(collection(db, VERSIONS, versionId, STUDENTS), limit(400)));
-        if (page.empty) break;
-        const batch = writeBatch(db);
-        page.docs.forEach((item) => batch.delete(item.ref));
-        await batch.commit();
+      for (const collectionName of [STUDENTS, LOOKUPS]) {
+        while (true) {
+          const page = await getDocs(query(collection(db, VERSIONS, versionId, collectionName), limit(400)));
+          if (page.empty) break;
+          const batch = writeBatch(db);
+          page.docs.forEach((item) => batch.delete(item.ref));
+          await batch.commit();
+        }
       }
       await deleteDoc(doc(db, VERSIONS, versionId));
     },
   };
+}
+
+function storedAllocation(student: StudentAllocation): StudentAllocation {
+  const studentId = student.studentId ? normalizeStudentId(student.studentId) : '';
+  const registerNumber = student.registerNumber ? normalizeRegisterNumber(student.registerNumber) : undefined;
+  return { ...student, studentId, registerNumber };
 }
 
 let repository: AllocationRepository | null = null;

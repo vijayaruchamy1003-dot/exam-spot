@@ -85,10 +85,21 @@ service cloud.firestore {
 
       match /students/{studentId} {
         allow read: if isAdmin() || (isStaff() && teacherCanReadVersion(versionId));
+        allow create: if isAdmin() && (
+          (request.resource.data.studentId is string && request.resource.data.studentId.size() > 0 && request.resource.data.studentId.size() < 200)
+          || (request.resource.data.registerNumber is string && request.resource.data.registerNumber.size() > 0 && request.resource.data.registerNumber.size() < 200)
+        );
+        allow update: if false;
+        allow delete: if isAdmin()
+          && get(/databases/$(database)/documents/allocationVersions/$(versionId)).data.status != 'active';
+      }
+
+      match /lookups/{lookupId} {
+        allow read: if isAdmin() || (isStaff() && teacherCanReadVersion(versionId));
         allow create: if isAdmin()
-          && request.resource.data.studentId is string
-          && request.resource.data.studentId.size() > 0
-          && request.resource.data.studentId.size() < 200;
+          && request.resource.data.docId is string
+          && request.resource.data.docId.size() > 0
+          && request.resource.data.docId.size() < 700;
         allow update: if false;
         allow delete: if isAdmin()
           && get(/databases/$(database)/documents/allocationVersions/$(versionId)).data.status != 'active';

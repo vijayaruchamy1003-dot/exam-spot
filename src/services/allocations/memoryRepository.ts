@@ -1,7 +1,8 @@
 import { planActivation } from '@/services/allocations/activation';
 import type { AllocationRepository } from '@/services/allocations/repository';
-import { studentDocumentId } from '@/utils/documentId';
-import type { AllocationMetadata, AllocationVersionRecord, StudentAllocation } from '@/types/allocation';
+import type { AllocationMetadata, AllocationVersionRecord, SearchBy, StudentAllocation } from '@/types/allocation';
+import { lookupDocumentId, storedStudentDocumentId, studentDocumentId } from '@/utils/documentId';
+import { normalizeRegisterNumber, normalizeStudentId } from '@/utils/studentId';
 import { AppError } from '@/utils/errors';
 
 type Listener = (metadata: AllocationMetadata | null, error: Error | null) => void;
@@ -9,6 +10,7 @@ type Listener = (metadata: AllocationMetadata | null, error: Error | null) => vo
 export class MemoryAllocationRepository implements AllocationRepository {
   private versions = new Map<string, AllocationVersionRecord>();
   private students = new Map<string, Map<string, StudentAllocation>>();
+  private lookups = new Map<string, Map<string, string>>();
   private metadata: AllocationMetadata | null = null;
   private listeners = new Set<Listener>();
 
@@ -28,13 +30,19 @@ export class MemoryAllocationRepository implements AllocationRepository {
     }
     this.versions.set(version.id, { ...version });
     this.students.set(version.id, new Map());
+    this.lookups.set(version.id, new Map());
   }
 
   async writeStudents(versionId: string, students: StudentAllocation[]): Promise<void> {
     const bucket = this.students.get(versionId);
-    if (!bucket) throw new AppError('The import version is missing.', 'version-missing');
+    const index = this.lookups.get(versionId);
+    if (!bucket || !index) throw new AppError('The import version is missing.', 'version-missing');
     for (const student of students) {
-      bucket.set(studentDocumentId(student.studentId), { ...student, extras: student.extras ? { ...student.extras } : undefined });
+      const stored = storedAllocation(student);
+      const docId = storedStudentDocumentId(stored);
+      bucket.set(docId, stored);
+      if (stored.studentId) index.set(lookupDocumentId('studentId', stored.studentId), docId);
+      if (stored.registerNumber) index.set(lookupDocumentId('registerNumber', stored.registerNumber), docId);
     }
   }
 
@@ -69,10 +77,13 @@ export class MemoryAllocationRepository implements AllocationRepository {
     return { ...plan.metadata };
   }
 
-  async getStudent(versionId: string, studentId: string): Promise<StudentAllocation | null> {
+  async getStudent(versionId: string, value: string, by: SearchBy = 'studentId'): Promise<StudentAllocation | null> {
     const bucket = this.students.get(versionId);
     if (!bucket) return null;
-    const record = bucket.get(studentDocumentId(studentId));
+    const normalized = by === 'registerNumber' ? normalizeRegisterNumber(value) : normalizeStudentId(value);
+    if (!normalized) return null;
+    const indexed = this.lookups.get(versionId)?.get(lookupDocumentId(by, normalized));
+    const record = bucket.get(indexed ?? (by === 'registerNumber' ? '' : studentDocumentId(normalized)));
     return record ? { ...record, extras: record.extras ? { ...record.extras } : undefined } : null;
   }
 
@@ -88,10 +99,22 @@ export class MemoryAllocationRepository implements AllocationRepository {
     }
     this.versions.delete(versionId);
     this.students.delete(versionId);
+    this.lookups.delete(versionId);
   }
 
   private emit(): void {
     const snapshot = this.metadata ? { ...this.metadata } : null;
     for (const listener of this.listeners) listener(snapshot, null);
   }
+}
+
+function storedAllocation(student: StudentAllocation): StudentAllocation {
+  const studentId = student.studentId ? normalizeStudentId(student.studentId) : '';
+  const registerNumber = student.registerNumber ? normalizeRegisterNumber(student.registerNumber) : undefined;
+  return {
+    ...student,
+    studentId,
+    registerNumber,
+    extras: student.extras ? { ...student.extras } : undefined,
+  };
 }

@@ -1,4 +1,5 @@
-import { normalizeStudentId } from '@/utils/studentId';
+import type { SearchBy, StudentAllocation } from '@/types/allocation';
+import { normalizeRegisterNumber, normalizeStudentId } from '@/utils/studentId';
 
 const MAX_DOCUMENT_ID_LENGTH = 700;
 
@@ -11,9 +12,32 @@ export function studentDocumentId(studentId: string): string {
   if (!normalized) {
     throw new Error('A student ID is required to store an allocation.');
   }
+  return safeDocumentId(normalized, 'This student ID cannot be stored safely.');
+}
+
+export function registerDocumentId(registerNumber: string): string {
+  const normalized = normalizeRegisterNumber(registerNumber);
+  if (!normalized) {
+    throw new Error('A registration number is required to store an allocation.');
+  }
+  return safeDocumentId(normalized, 'This registration number cannot be stored safely.');
+}
+
+export function storedStudentDocumentId(student: Pick<StudentAllocation, 'studentId' | 'registerNumber'>): string {
+  if (student.studentId) return studentDocumentId(student.studentId);
+  if (student.registerNumber) return registerDocumentId(student.registerNumber);
+  throw new Error('A student ID or registration number is required to store an allocation.');
+}
+
+export function lookupDocumentId(by: SearchBy, value: string): string {
+  const encoded = by === 'registerNumber' ? registerDocumentId(value) : studentDocumentId(value);
+  return `${by === 'registerNumber' ? 'reg' : 'id'}~${encoded}`;
+}
+
+function safeDocumentId(normalized: string, invalidMessage: string): string {
   const encoded = encodeURIComponent(normalized);
   if (encoded === '.' || encoded === '..' || encoded.length > MAX_DOCUMENT_ID_LENGTH) {
-    throw new Error('This student ID cannot be stored safely.');
+    throw new Error(invalidMessage);
   }
   return encoded;
 }

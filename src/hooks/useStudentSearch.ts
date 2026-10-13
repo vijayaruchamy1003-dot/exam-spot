@@ -2,11 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { LOOKUP_TIMEOUT_MS, MIN_TYPEAHEAD_LENGTH, SEARCH_DEBOUNCE_MS } from '@/config/limits';
 import { appCache } from '@/services/allocations/appCache';
 import { getAllocationRepository } from '@/services/allocations/getRepository';
-import { cacheFallback, decideLookup } from '@/services/allocations/lookup';
-import type { AllocationMetadata, StudentAllocation } from '@/types/allocation';
+import { cacheFallback, decideLookup, lookupCacheKey } from '@/services/allocations/lookup';
+import type { AllocationMetadata, SearchBy, StudentAllocation } from '@/types/allocation';
 import { AppError, toUserMessage } from '@/utils/errors';
 import { withTimeout } from '@/utils/text';
-import { normalizeStudentId } from '@/utils/studentId';
+import { normalizeRegisterNumber } from '@/utils/studentId';
 
 export type SearchPhase = 'idle' | 'searching' | 'found' | 'not-found' | 'no-allocation' | 'offline' | 'error';
 
@@ -16,6 +16,7 @@ export function useStudentSearch(input: {
   localOnly: boolean;
 }) {
   const [query, setQuery] = useState('');
+  const [searchBy, setSearchBy] = useState<SearchBy>('registerNumber');
   const [phase, setPhase] = useState<SearchPhase>('idle');
   const [student, setStudent] = useState<StudentAllocation | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -44,6 +45,7 @@ export function useStudentSearch(input: {
     async (raw: string) => {
       const decision = decideLookup({
         rawId: raw,
+        by: searchBy,
         online: input.online,
         localOnly: input.localOnly,
         activeVersionId: versionId,
@@ -68,15 +70,15 @@ export function useStudentSearch(input: {
         setPhase('offline');
         setStudent(null);
         setStale(true);
-        setMessage('You are offline, and this student ID is not in the saved results on this phone.');
+        setMessage('You are offline, and this ID is not in the saved results on this phone.');
         return;
       }
       if (decision.type === 'use-cache') {
-        applyCached(versionId as string, normalizeStudentId(raw));
+        applyCached(versionId as string, lookupCacheKey(searchBy, raw));
         return;
       }
 
-      lastSearched.current = decision.studentId;
+      lastSearched.current = raw;
       setPhase('searching');
       setStudent(null);
       setMessage(null);
@@ -84,7 +86,7 @@ export function useStudentSearch(input: {
       try {
         const repo = getAllocationRepository();
         const found = await withTimeout(
-          repo.getStudent(decision.versionId, decision.studentId),
+          repo.getStudent(decision.versionId, decision.studentId, decision.by),
           LOOKUP_TIMEOUT_MS,
           'The lookup took too long. Check the connection and try again.',
         );
@@ -92,7 +94,7 @@ export function useStudentSearch(input: {
         if (versionId !== decision.versionId) return;
         await appCache.remember({
           versionId: decision.versionId,
-          studentId: decision.studentId,
+          studentId: lookupCacheKey(decision.by, raw),
           found: Boolean(found),
           student: found,
           cachedAt: new Date().toISOString(),
@@ -104,23 +106,24 @@ export function useStudentSearch(input: {
         setMessage(found ? null : 'Student not found');
       } catch (error) {
         if (requestId !== requestRef.current) return;
-        if (applyCached(decision.versionId, decision.studentId)) return;
+        if (applyCached(decision.versionId, lookupCacheKey(decision.by, raw))) return;
         setStudent(null);
         setPhase('error');
         setStale(false);
         setMessage(error instanceof AppError ? error.message : toUserMessage(error, 'The student lookup failed.'));
       }
     },
-    [applyCached, input.localOnly, input.online, versionId],
+    [applyCached, input.localOnly, input.online, searchBy, versionId],
   );
 
   useEffect(() => {
-    if (normalizeStudentId(query).length < MIN_TYPEAHEAD_LENGTH) return;
+    const typed = searchBy === 'registerNumber' ? normalizeRegisterNumber(query) : query.trim();
+    if (typed.length < MIN_TYPEAHEAD_LENGTH) return;
     const timer = setTimeout(() => {
       void run(query);
     }, SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [query, run]);
+  }, [query, run, searchBy]);
 
   useEffect(() => {
     if (!lastSearched.current) return;
@@ -138,9 +141,24 @@ export function useStudentSearch(input: {
     setMatchedId(null);
   }
 
+  function chooseSearchBy(next: SearchBy) {
+    if (next === searchBy) return;
+    requestRef.current += 1;
+    lastSearched.current = null;
+    setSearchBy(next);
+    setQuery('');
+    setPhase('idle');
+    setStudent(null);
+    setMessage(null);
+    setStale(false);
+    setMatchedId(null);
+  }
+
   return {
     query,
     setQuery,
+    searchBy,
+    setSearchBy: chooseSearchBy,
     phase,
     student,
     message,

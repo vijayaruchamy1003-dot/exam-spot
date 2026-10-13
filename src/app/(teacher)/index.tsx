@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AppHeader } from '@/components/AppHeader';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
@@ -69,12 +69,16 @@ export default function HomeScreen() {
           />
         ) : null}
         {profile?.role === 'admin' ? <PrimaryButton label="Import allocation" onPress={() => router.push('/import')} tone="secondary" /> : null}
+        <View style={styles.modes}>
+          <SearchMode label="Registration number" selected={search.searchBy === 'registerNumber'} onPress={() => search.setSearchBy('registerNumber')} />
+          <SearchMode label="Student ID" selected={search.searchBy === 'studentId'} onPress={() => search.setSearchBy('studentId')} />
+        </View>
         <TextField
-          label="Enter Student ID"
-          prefix={STUDENT_ID_PREFIX}
+          label={search.searchBy === 'studentId' ? 'Enter Student ID' : 'Enter registration number'}
+          prefix={search.searchBy === 'studentId' ? STUDENT_ID_PREFIX : undefined}
           value={search.query}
           onChangeText={search.setQuery}
-          placeholder="e.g. 0010245"
+          placeholder={search.searchBy === 'studentId' ? 'e.g. 0010245' : 'From the registration column'}
           returnKeyType="search"
           onSubmitEditing={() => void search.search()}
         />
@@ -88,16 +92,16 @@ export default function HomeScreen() {
         </View>
         {search.phase === 'idle' ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>Search a student ID</Text>
+            <Text style={styles.emptyTitle}>Search by registration number or student ID</Text>
             <Text style={styles.emptyBody}>
               {mode === 'demo'
-                ? 'The room and seat appear here after a match. The Z is added for you. Sample IDs include 0010245 and 000007.'
-                : 'The room and seat appear here after a match from the active allocation.'}
+                ? 'Either value finds the same room and seat. Sample registration numbers include REG001. Sample student IDs include 0010245. The Z is added only for a student ID.'
+                : 'Use the registration number from the seating sheet, or a student ID when that column has been added. Either one finds the room and seat.'}
             </Text>
           </View>
         ) : null}
         {search.phase === 'not-found' ? (
-          <StatusBanner tone="error" title="Student not found" detail={`No allocation in the active list matches ${search.matchedId ?? 'that ID'}.`} />
+          <StatusBanner tone="error" title="Student not found" detail={`No allocation in the active list matches ${search.matchedId ?? 'that value'}.`} />
         ) : null}
         {search.phase === 'no-allocation' ? (
           <StatusBanner tone="info" title="No allocation published" detail="An administrator needs to import the examination spreadsheet." />
@@ -123,6 +127,14 @@ export default function HomeScreen() {
   );
 }
 
+function SearchMode({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={[styles.mode, selected ? styles.modeOn : null]}>
+      <Text style={[styles.modeText, selected ? styles.modeTextOn : null]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: 20, gap: 14, paddingBottom: 40 },
@@ -132,6 +144,21 @@ const styles = StyleSheet.create({
   dotOff: { backgroundColor: colors.gold },
   statusText: { color: colors.navy, fontSize: 16, fontWeight: '700' },
   syncTime: { color: colors.muted, fontSize: 14, lineHeight: 20 },
+  modes: { flexDirection: 'row', gap: 8 },
+  mode: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  modeOn: { backgroundColor: colors.navy, borderColor: colors.navy },
+  modeText: { color: colors.navy, fontSize: 14, fontWeight: '700', textAlign: 'center' },
+  modeTextOn: { color: colors.white },
   actions: { flexDirection: 'row', gap: 10 },
   action: { flex: 1 },
   empty: { backgroundColor: colors.white, borderRadius: 16, padding: 18, gap: 6, borderWidth: 1, borderColor: colors.border },

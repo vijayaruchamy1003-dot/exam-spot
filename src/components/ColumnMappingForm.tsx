@@ -22,7 +22,7 @@ export function ColumnMappingForm({
   return (
     <View style={styles.wrap}>
       <Text style={styles.heading}>Column mapping</Text>
-      <Text style={styles.help}>Match the spreadsheet columns to the allocation fields. Only Student ID is required.</Text>
+      <Text style={styles.help}>Match the spreadsheet columns to the allocation fields. Map Student ID or Registration number. One of those two is required.</Text>
       {STANDARD_FIELDS.map((item) => (
         <View key={item.key} style={styles.row}>
           <Text style={styles.label}>

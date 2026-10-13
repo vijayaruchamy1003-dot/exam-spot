@@ -208,7 +208,7 @@ export default function ImportScreen() {
                 <Text style={styles.heading}>Preview</Text>
                 {validation.preview.map((row) => (
                   <Text key={row.rowNumber} style={styles.previewRow}>
-                    Row {row.rowNumber}: {row.studentId || '(blank ID)'} {row.studentName} {row.roomNumber} {row.seatNumber} · {row.status}
+                    Row {row.rowNumber}: {row.registerNumber || row.studentId || '(no ID)'} {row.studentName} {row.roomNumber} {row.seatNumber} · {row.status}
                   </Text>
                 ))}
               </View>
@@ -244,7 +244,7 @@ export default function ImportScreen() {
         <PrimaryButton label="Remove old versions" tone="secondary" onPress={() => void cleanup()} disabled={running} />
         {cleanupMessage ? <Text style={styles.note}>{cleanupMessage}</Text> : null}
         <Text style={styles.note}>
-          If the upload stops early, the previous active allocation stays in place. Student IDs are kept as text, including leading zeros. A leading Z is added when the cell does not already start with Z. Format the ID column as text in Excel before import.
+          If the upload stops early, the previous active allocation stays in place. A row needs a registration number or a student ID. Student IDs stay text, and a leading Z is added when that cell does not already start with Z. Registration numbers are not given that prefix. In Excel, format both columns as text so long numbers are not rounded.
         </Text>
       </ScrollView>
       <ConfirmDialog

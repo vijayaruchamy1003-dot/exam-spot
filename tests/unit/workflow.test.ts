@@ -39,6 +39,25 @@ describe('import workflow', () => {
     expect(await repo.getStudent('vone', '10245')).toBeNull();
   });
 
+  it('finds a student by registration number or student ID', async () => {
+    const repo = new MemoryAllocationRepository();
+    const result = await runImport(repo, {
+      records: [
+        { studentId: '', registerNumber: '9000000000000000001', studentName: 'Sample Student', roomNumber: '1st Floor - Room 1', seatNumber: '1' },
+        { studentId: '0010245', registerNumber: 'REG001', studentName: 'Sample Student Two', roomNumber: 'A-204', seatNumber: '24' },
+      ],
+      sourceFileName: 'seating.csv',
+      actorId: 'admin',
+      duplicatePolicy: 'reject',
+      createId: () => 'vseat',
+    });
+    expect(result.ok).toBe(true);
+    expect(await repo.getStudent('vseat', '9000000000000000001', 'registerNumber')).toMatchObject({ roomNumber: '1st Floor - Room 1', studentId: '' });
+    expect(await repo.getStudent('vseat', '9000000000000000001', 'studentId')).toBeNull();
+    expect(await repo.getStudent('vseat', '0010245', 'studentId')).toMatchObject({ roomNumber: 'A-204' });
+    expect(await repo.getStudent('vseat', 'REG001', 'registerNumber')).toMatchObject({ studentId: 'Z0010245', roomNumber: 'A-204' });
+  });
+
   it('leaves the active allocation unchanged when an upload fails', async () => {
     const failing = new BoomRepository();
     const first = await runImport(failing, {

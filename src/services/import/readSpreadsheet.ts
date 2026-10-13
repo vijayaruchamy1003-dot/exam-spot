@@ -6,6 +6,8 @@ import { AppError } from '@/utils/errors';
 const SPREADSHEET_TYPES = [
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   'application/vnd.ms-excel',
+  'text/csv',
+  'text/comma-separated-values',
 ];
 
 export async function pickSpreadsheet(): Promise<{ name: string; bytes: ArrayBuffer } | null> {
@@ -19,8 +21,8 @@ export async function pickSpreadsheet(): Promise<{ name: string; bytes: ArrayBuf
   if (!asset) throw new AppError('No file was selected.', 'unsupported-file');
   const name = asset.name || 'allocation.xlsx';
   const lower = name.toLowerCase();
-  if (!lower.endsWith('.xlsx') && !lower.endsWith('.xls')) {
-    throw new AppError('Choose an Excel file ending in .xlsx or .xls.', 'unsupported-file');
+  if (!lower.endsWith('.xlsx') && !lower.endsWith('.xls') && !lower.endsWith('.csv')) {
+    throw new AppError('Choose an Excel file ending in .xlsx or .xls, or a .csv file.', 'unsupported-file');
   }
   if (typeof asset.size === 'number' && asset.size > MAX_FILE_BYTES) {
     throw new AppError('This file is larger than 10 MB. Split it and try again.', 'file-too-large');

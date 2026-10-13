@@ -74,6 +74,34 @@ describe('import validation', () => {
     expect(keepLast.records.find((record) => record.studentId === 'Z0010245')?.roomNumber).toBe('B-1');
   });
 
+  it('imports a seating sheet that has a registration number and no student ID', () => {
+    const headers = ['Registration Number', 'Name', 'Seat Number', 'Room Number'];
+    const result = validateImport({
+      rows: [
+        {
+          rowNumber: 2,
+          values: {
+            'Registration Number': '\t9000000000000000001',
+            Name: 'Sample Student',
+            'Seat Number': '1',
+            'Room Number': '1st Floor - Room 1',
+          },
+        },
+      ],
+      headers,
+      policy: 'reject',
+      preserveUnmapped: true,
+    });
+    expect(result.canImport).toBe(true);
+    expect(result.records[0]).toMatchObject({
+      studentId: '',
+      registerNumber: '9000000000000000001',
+      studentName: 'Sample Student',
+      seatNumber: '1',
+      roomNumber: '1st Floor - Room 1',
+    });
+  });
+
   it('requires a student ID column', () => {
     const result = validateImport({
       rows: [row(2, ['0010245', 'Sample Student', 'A-204', ''])],

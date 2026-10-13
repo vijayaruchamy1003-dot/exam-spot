@@ -17,6 +17,11 @@ export function normalizeStudentId(value: string): string {
   return STUDENT_ID_PREFIX + trimmed;
 }
 
+/** Registration numbers stay as text. They do not receive the student ID prefix. */
+export function normalizeRegisterNumber(value: string): string {
+  return tidyText(value);
+}
+
 export function assertStudentIdString(value: unknown): string {
   if (typeof value !== 'string') {
     throw new Error('Student ID must stay a string and cannot be converted from a number.');

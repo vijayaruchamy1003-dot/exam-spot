@@ -1,4 +1,4 @@
-import type { AllocationMetadata, AllocationVersionRecord, StudentAllocation } from '@/types/allocation';
+import type { AllocationMetadata, AllocationVersionRecord, SearchBy, StudentAllocation } from '@/types/allocation';
 
 export interface AllocationRepository {
   getMetadata(): Promise<AllocationMetadata | null>;
@@ -8,7 +8,7 @@ export interface AllocationRepository {
   updateVersion(versionId: string, patch: Partial<AllocationVersionRecord>): Promise<void>;
   countStudents(versionId: string): Promise<number>;
   activateVersion(versionId: string, actorId: string, nowIso: string): Promise<AllocationMetadata>;
-  getStudent(versionId: string, studentId: string): Promise<StudentAllocation | null>;
+  getStudent(versionId: string, value: string, by?: SearchBy): Promise<StudentAllocation | null>;
   listVersions(): Promise<AllocationVersionRecord[]>;
   deleteVersion(versionId: string): Promise<void>;
 }
