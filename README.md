@@ -188,22 +188,6 @@ Before building, set the Firebase environment variables for the preview environm
 
 You do not need Android Studio for an EAS cloud build. Do not commit `android/` or a keystore. EAS creates the native project and signs the APK.
 
-## iOS Simulator
-
-The `ios-simulator` profile builds an unsigned app for the iOS Simulator on a Mac. It uses the Firebase variables already stored in the EAS preview environment and keeps demo mode off. It does not install on an iPhone, and it does not require device registration or a paid Apple Developer account.
-
-```bash
-npx eas-cli build --platform ios --profile ios-simulator
-```
-
-On the Mac, with Xcode installed, install that build into a booted simulator:
-
-```bash
-npx eas-cli build:run --platform ios --profile ios-simulator
-```
-
-For a physical iPhone, use the `preview` profile instead. Register the phone first with `npx eas-cli device:create`, then run `npx eas-cli build --platform ios --profile preview`. That build requires a paid Apple Developer Program membership. Open the install link in Safari on that iPhone. If iOS blocks the app, go to Settings, General, VPN & Device Management, trust the developer certificate, then open Exam Room Finder again. Do not commit `ios/` or the signing certificates.
-
 ## Scripts
 
 | Command | Purpose |
