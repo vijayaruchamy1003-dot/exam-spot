@@ -29,8 +29,8 @@ function detailRows(student: StudentAllocation): Array<{ label: string; value: s
   };
 
   add('Name', student.studentName, true);
-  add('Student ID', student.studentId);
-  add('Registration number', student.registerNumber);
+  add('Student ID', student.studentId, true);
+  add('Registration number', student.registerNumber, true);
   add('Room', student.roomNumber, true);
   add('Seat', student.seatNumber, true);
   add('Floor', student.floor);
