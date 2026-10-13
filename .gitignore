@@ -34,7 +34,8 @@ pubsub-debug.log
 .DS_Store
 *.pem
 
-# local overrides only; the shared public client config lives in .env
+# Local client settings. EAS cloud builds do not receive this file.
+.env
 .env*.local
 
 # typescript

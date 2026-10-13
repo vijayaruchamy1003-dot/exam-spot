@@ -48,7 +48,7 @@ function ConfigMissing() {
       <StatusBanner
         tone="error"
         title="Allocation data is unavailable"
-        detail="The app will not open student records until Firebase is configured, or until demo mode is turned on for a local preview."
+        detail="This build did not receive the Firebase client settings. Local Expo reads them from .env. An EAS preview APK needs the same EXPO_PUBLIC_FIREBASE_* variables in the preview environment."
       />
       <Text style={styles.configBody}>
         Add these public client settings to a local .env file, then restart Expo. Client settings are not a substitute for Firestore Security Rules.
