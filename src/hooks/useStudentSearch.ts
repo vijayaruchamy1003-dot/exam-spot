@@ -1,170 +1,163 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { LOOKUP_TIMEOUT_MS, MIN_TYPEAHEAD_LENGTH, SEARCH_DEBOUNCE_MS } from '@/config/limits';
-import { appCache } from '@/services/allocations/appCache';
-import { getAllocationRepository } from '@/services/allocations/getRepository';
-import { cacheFallback, decideLookup, lookupCacheKey } from '@/services/allocations/lookup';
-import type { AllocationMetadata, SearchBy, StudentAllocation } from '@/types/allocation';
-import { AppError, toUserMessage } from '@/utils/errors';
-import { withTimeout } from '@/utils/text';
-import { normalizeRegisterNumber } from '@/utils/studentId';
+import { searchSeatingAllotment, normalizeSearchQuery } from '@/services/api/seatingApi';
+import { getCachedAllotment, getRecentSearches, saveCachedAllotment } from '@/services/api/seatingCache';
+import type { SearchBy, SeatingAllotmentData } from '@/types/allocation';
 
-export type SearchPhase = 'idle' | 'searching' | 'found' | 'not-found' | 'no-allocation' | 'offline' | 'error';
+export type SearchPhase =
+  | 'idle'
+  | 'searching'
+  | 'found'
+  | 'not-allotted'
+  | 'not-found'
+  | 'offline'
+  | 'error';
 
-export function useStudentSearch(input: {
-  metadata: AllocationMetadata | null;
+export interface UseStudentSearchInput {
   online: boolean;
-  localOnly: boolean;
-}) {
-  const [query, setQuery] = useState('');
-  const [searchBy, setSearchBy] = useState<SearchBy>('registerNumber');
-  const [phase, setPhase] = useState<SearchPhase>('idle');
-  const [student, setStudent] = useState<StudentAllocation | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const [stale, setStale] = useState(false);
-  const [matchedId, setMatchedId] = useState<string | null>(null);
-  const requestRef = useRef(0);
-  const lastSearched = useRef<string | null>(null);
-  const versionId = input.metadata?.activeVersionId ?? null;
+}
 
-  const applyCached = useCallback((version: string, studentId: string) => {
-    const cached = cacheFallback(appCache.snapshot(), version, studentId);
-    if (!cached) return false;
-    setStudent(cached.student);
-    setMatchedId(studentId);
-    setStale(true);
-    setPhase(cached.found ? 'found' : 'not-found');
-    setMessage(
-      cached.found
-        ? 'Showing a saved result from the last synchronization. It may be out of date.'
-        : 'This ID was not in the allocation at the last synchronization. That result may be out of date.',
-    );
-    return true;
+export function useStudentSearch({ online }: UseStudentSearchInput) {
+  const [query, setQuery] = useState('');
+  const [searchBy, setSearchBy] = useState<SearchBy>('studentId');
+  const [testDate, setTestDate] = useState('');
+  const [phase, setPhase] = useState<SearchPhase>('idle');
+  const [student, setStudent] = useState<SeatingAllotmentData | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [isCached, setIsCached] = useState(false);
+  const [matchedId, setMatchedId] = useState<string | null>(null);
+  const [recentList, setRecentList] = useState<SeatingAllotmentData[]>([]);
+
+  const requestRef = useRef(0);
+
+  // Load recent searches on mount
+  useEffect(() => {
+    getRecentSearches().then(setRecentList).catch(() => {});
   }, []);
 
-  const run = useCallback(
-    async (raw: string) => {
-      const decision = decideLookup({
-        rawId: raw,
-        by: searchBy,
-        online: input.online,
-        localOnly: input.localOnly,
-        activeVersionId: versionId,
-        cache: appCache.snapshot(),
-      });
-      const requestId = ++requestRef.current;
-      if (decision.type === 'need-id') {
+  const clear = useCallback(() => {
+    setQuery('');
+    setPhase('idle');
+    setStudent(null);
+    setMessage(null);
+    setIsCached(false);
+    setMatchedId(null);
+  }, []);
+
+  const search = useCallback(
+    async (overrideQuery?: string) => {
+      const targetQuery = overrideQuery ?? query;
+      const normalized = normalizeSearchQuery(targetQuery, searchBy);
+
+      if (!normalized) {
         setPhase('idle');
         setStudent(null);
-        setMessage('Enter a student ID.');
-        setStale(false);
-        return;
-      }
-      if (decision.type === 'no-allocation') {
-        setPhase('no-allocation');
-        setStudent(null);
-        setStale(false);
-        setMessage('No allocation has been published yet.');
-        return;
-      }
-      if (decision.type === 'offline-unavailable') {
-        setPhase('offline');
-        setStudent(null);
-        setStale(true);
-        setMessage('You are offline, and this ID is not in the saved results on this phone.');
-        return;
-      }
-      if (decision.type === 'use-cache') {
-        applyCached(versionId as string, lookupCacheKey(searchBy, raw));
+        setMessage(
+          searchBy === 'studentId'
+            ? 'Enter a Student ID (e.g. Z11586).'
+            : 'Enter a Registration Number (e.g. 1102011081109260001).'
+        );
+        setIsCached(false);
         return;
       }
 
-      lastSearched.current = raw;
+      const requestId = ++requestRef.current;
       setPhase('searching');
       setStudent(null);
       setMessage(null);
-      setStale(false);
+      setIsCached(false);
+      setMatchedId(normalized);
+
+      // If device is offline, attempt immediate cache lookup
+      if (!online) {
+        const cached = await getCachedAllotment(normalized);
+        if (requestId !== requestRef.current) return;
+
+        if (cached) {
+          setStudent(cached);
+          setIsCached(true);
+          setPhase('found');
+          setMessage('Showing saved result from offline cache. Seating may be out of date.');
+        } else {
+          setPhase('offline');
+          setMessage(
+            'You are currently offline, and this student has not been searched on this device yet.'
+          );
+        }
+        return;
+      }
+
+      // Online search via backend API
       try {
-        const repo = getAllocationRepository();
-        const found = await withTimeout(
-          repo.getStudent(decision.versionId, decision.studentId, decision.by),
-          LOOKUP_TIMEOUT_MS,
-          'The lookup took too long. Check the connection and try again.',
-        );
-        if (requestId !== requestRef.current) return;
-        if (versionId !== decision.versionId) return;
-        await appCache.remember({
-          versionId: decision.versionId,
-          studentId: lookupCacheKey(decision.by, raw),
-          found: Boolean(found),
-          student: found,
-          cachedAt: new Date().toISOString(),
+        const response = await searchSeatingAllotment({
+          query: normalized,
+          searchBy,
+          testDate: testDate.trim() || undefined,
         });
-        setStudent(found);
-        setMatchedId(decision.studentId);
-        setStale(false);
-        setPhase(found ? 'found' : 'not-found');
-        setMessage(found ? null : 'Student not found');
-      } catch (error) {
+
         if (requestId !== requestRef.current) return;
-        if (applyCached(decision.versionId, lookupCacheKey(decision.by, raw))) return;
-        setStudent(null);
-        setPhase('error');
-        setStale(false);
-        setMessage(error instanceof AppError ? error.message : toUserMessage(error, 'The student lookup failed.'));
+
+        if (response.success && response.data) {
+          setStudent(response.data);
+          setIsCached(false);
+          setPhase('found');
+          setMessage(response.message || 'Seating allotment found.');
+
+          // Save to device cache asynchronously
+          void saveCachedAllotment(response.data).then(() => {
+            getRecentSearches().then(setRecentList).catch(() => {});
+          });
+        } else {
+          // Check if message signifies not allotted vs not registered
+          const msg = response.message || '';
+          const isNotAllotted =
+            msg.toLowerCase().includes('not been allotted') ||
+            msg.toLowerCase().includes('not allotted') ||
+            msg.toLowerCase().includes('not published');
+
+          setStudent(null);
+          setIsCached(false);
+          if (isNotAllotted) {
+            setPhase('not-allotted');
+            setMessage(msg || 'Seating arrangement has not been allotted yet for this exam.');
+          } else {
+            setPhase('not-found');
+            setMessage(msg || `No student found matching ${normalized}.`);
+          }
+        }
+      } catch (err: unknown) {
+        if (requestId !== requestRef.current) return;
+
+        // Fallback to cache on network failure
+        const fallback = await getCachedAllotment(normalized);
+        if (fallback) {
+          setStudent(fallback);
+          setIsCached(true);
+          setPhase('found');
+          setMessage('Network error. Showing saved result from offline cache.');
+        } else {
+          setStudent(null);
+          setPhase('error');
+          setMessage('Unable to connect to the seating allotment server. Check your network connection.');
+        }
       }
     },
-    [applyCached, input.localOnly, input.online, searchBy, versionId],
+    [online, query, searchBy, testDate]
   );
-
-  useEffect(() => {
-    const typed = searchBy === 'registerNumber' ? normalizeRegisterNumber(query) : query.trim();
-    if (typed.length < MIN_TYPEAHEAD_LENGTH) return;
-    const timer = setTimeout(() => {
-      void run(query);
-    }, SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [query, run, searchBy]);
-
-  useEffect(() => {
-    if (!lastSearched.current) return;
-    void run(lastSearched.current);
-  }, [versionId, input.online, run]);
-
-  function clear() {
-    requestRef.current += 1;
-    lastSearched.current = null;
-    setQuery('');
-    setPhase('idle');
-    setStudent(null);
-    setMessage(null);
-    setStale(false);
-    setMatchedId(null);
-  }
-
-  function chooseSearchBy(next: SearchBy) {
-    if (next === searchBy) return;
-    requestRef.current += 1;
-    lastSearched.current = null;
-    setSearchBy(next);
-    setQuery('');
-    setPhase('idle');
-    setStudent(null);
-    setMessage(null);
-    setStale(false);
-    setMatchedId(null);
-  }
 
   return {
     query,
     setQuery,
     searchBy,
-    setSearchBy: chooseSearchBy,
+    setSearchBy,
+    testDate,
+    setTestDate,
     phase,
     student,
     message,
-    stale,
+    isCached,
     matchedId,
-    search: () => run(query),
+    recentList,
+    search,
     clear,
   };
 }
