@@ -11,7 +11,6 @@ Seating data is fetched directly from the live **Z7i Seating Allotment API**. Th
 - **Clear Room & Seat Cards**: Prominently highlights the **Room Number** and **Seat Number**, candidate name, exam centre address, test date, and examination mode.
 - **Unallotted Status Handling**: Clearly informs teachers when a candidate is registered but seating has not been allotted yet for that exam date.
 - **Device-Level Offline Cache**: Caches recent search results via `@react-native-async-storage/async-storage` so teachers can continue viewing previously searched seat assignments in halls with zero network coverage.
-- **Quick Sample Chips**: Test directly with pre-configured sample IDs (`Z11586`, `1102011081109260001`, `Z09334`).
 - **1-Tap Demo Sign In**: Instant sign in with pre-configured teacher and administrator credentials for fast local testing.
 - **Optional Exam Date Filter**: Allows filtering by specific test date (e.g. `10-09-2026`).
 

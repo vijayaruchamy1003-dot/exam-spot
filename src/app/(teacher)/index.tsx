@@ -24,10 +24,10 @@ export default function HomeScreen() {
     ? 'Live Seating Allotment Service'
     : 'Offline Mode · Saved Results Only';
 
-  const onSelectSample = (sampleValue: string, mode: 'studentId' | 'registerNumber') => {
+  const onSelectRecent = (value: string, mode: 'studentId' | 'registerNumber') => {
     search.setSearchBy(mode);
-    search.setQuery(sampleValue);
-    void search.search(sampleValue);
+    search.setQuery(value);
+    void search.search(value);
   };
 
   return (
@@ -115,31 +115,6 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Quick Test Chips for convenience */}
-        <View style={styles.samplesBox}>
-          <Text style={styles.samplesTitle}>Try sample queries:</Text>
-          <View style={styles.chipsRow}>
-            <Pressable
-              style={styles.chip}
-              onPress={() => onSelectSample('11586', 'studentId')}
-            >
-              <Text style={styles.chipText}>ID: Z11586 (Allotted)</Text>
-            </Pressable>
-            <Pressable
-              style={styles.chip}
-              onPress={() => onSelectSample('1102011081109260001', 'registerNumber')}
-            >
-              <Text style={styles.chipText}>Reg: 1102011081109260001</Text>
-            </Pressable>
-            <Pressable
-              style={styles.chip}
-              onPress={() => onSelectSample('09334', 'studentId')}
-            >
-              <Text style={styles.chipText}>ID: Z09334 (Unallotted)</Text>
-            </Pressable>
-          </View>
-        </View>
-
         {/* Result Area */}
         {search.phase === 'idle' ? (
           <View style={styles.empty}>
@@ -195,7 +170,7 @@ export default function HomeScreen() {
               <Pressable
                 key={idx}
                 style={styles.recentItem}
-                onPress={() => onSelectSample(item.studentId?.replace(/^Z/i, '') || item.registrationNumber, 'studentId')}
+                onPress={() => onSelectRecent(item.studentId?.replace(/^Z/i, '') || item.registrationNumber, 'studentId')}
               >
                 <View style={styles.recentItemMain}>
                   <Text style={styles.recentItemName}>{item.studentName}</Text>
@@ -275,25 +250,6 @@ const styles = StyleSheet.create({
   dateToggleText: { color: colors.teal, fontSize: 13, fontWeight: '700' },
   actions: { flexDirection: 'row', gap: 10, marginTop: 4 },
   action: { flex: 1 },
-  samplesBox: {
-    backgroundColor: '#EBF3FA',
-    borderRadius: 12,
-    padding: 12,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: '#D0E3F3',
-  },
-  samplesTitle: { color: colors.navy, fontSize: 12, fontWeight: '700' },
-  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip: {
-    backgroundColor: colors.white,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#BCD5EC',
-  },
-  chipText: { color: colors.navy, fontSize: 12, fontWeight: '600' },
   empty: {
     backgroundColor: colors.white,
     borderRadius: 16,
